@@ -14,13 +14,18 @@ export const metadata: Metadata = {
 };
 
 const QUICK_TAGS = [
+  "mongodb",
   "nextjs",
-  "drizzle",
-  "postgres",
+  "react",
+  "ai",
   "authentication",
   "performance",
+  "redis",
   "tailwind",
   "architecture",
+  "analytics",
+  "database",
+  "security",
 ];
 
 function getReadTime(content: string) {

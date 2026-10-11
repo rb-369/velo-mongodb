@@ -58,6 +58,24 @@ const SEED_AUTHORS = [
     email: "jordan.blake@velo.design",
     image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop",
   },
+  {
+    id: "usr_maya_patel",
+    name: "Maya Patel",
+    email: "maya.patel@velo.design",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=400&auto=format&fit=crop",
+  },
+  {
+    id: "usr_kai_takahashi",
+    name: "Kai Takahashi",
+    email: "kai.takahashi@velo.design",
+    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop",
+  },
+  {
+    id: "usr_liam_oconnor",
+    name: "Liam O'Connor",
+    email: "liam.oconnor@velo.design",
+    image: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=400&auto=format&fit=crop",
+  },
 ];
 
 const SEED_POSTS = [
@@ -259,6 +277,351 @@ Raw charts do not help creators grow. Instead, analytics must answer direct ques
 - Which topics drive loyal returning readership?
 - What time of day generates the highest engagement?
 - How does current reach compare to historical baselines?`,
+  },
+  {
+    title: "Scaling MongoDB Atlas for Multi-Tenant Creator Platforms at High Velocity",
+    slug: "scaling-mongodb-atlas-multi-tenant-creator-platforms",
+    description:
+      "Architectural blueprint for schema design, compound indexing, aggregation pipelines, and connection pooling in cloud-native MongoDB Atlas environments.",
+    category: "Database",
+    coverImage:
+      "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "maya.patel@velo.design",
+    tags: ["MongoDB", "Database", "Atlas", "Backend", "Scaling", "NoSQL"],
+    content: `## The Modern Document Store Paradigm
+
+When scaling content systems with polymorphic post formats, variable analytics streams, and dynamic tag associations, rigid tabular schemas often require expensive multi-table joins.
+
+MongoDB Atlas provides a native document model that fits modern JavaScript and TypeScript stacks seamlessly, offering horizontal scaling and flexible document structures.
+
+### 1. Compound Index Strategies for Fast Feed Queries
+
+To achieve sub-10ms response times across millions of published posts, compound indexes must mirror access patterns precisely:
+
+\`\`\`javascript
+// Optimize published post lookups with author filtering and reverse chronological ordering
+db.posts.createIndex(
+  { published: 1, authorId: 1, createdAt: -1 },
+  { background: true, name: "idx_posts_published_author_created" }
+);
+
+// Full-text search index across titles, tags, and descriptions
+db.posts.createIndex(
+  { title: "text", description: "text", content: "text" },
+  { weights: { title: 10, description: 5, content: 1 }, name: "idx_posts_text_search" }
+);
+\`\`\`
+
+### 2. Resilient Connection Pooling in Next.js Serverless Functions
+
+Serverless runtimes spin up and tear down instances dynamically. Maintaining a cached singleton connection across invocations prevents socket exhaustion:
+
+\`\`\`typescript
+import { MongoClient } from "mongodb";
+
+let cachedClient: MongoClient | null = null;
+
+export async function getDbClient() {
+  if (!cachedClient) {
+    cachedClient = new MongoClient(process.env.MONGODB_URI!, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      maxIdleTimeMS: 60000,
+    });
+    await cachedClient.connect();
+  }
+  return cachedClient;
+}
+\`\`\`
+
+### 3. Aggregation Pipelines for Social Metrics
+
+Using Atlas aggregation pipelines allows calculating engagement rates, bookmark counts, and follower signals in a single round-trip without overloading application memory.`,
+  },
+  {
+    title: "Modern Authentication Architecture: Session Cookies, Multi-Tenant OAuth, and Passkeys",
+    slug: "modern-authentication-architecture-session-cookies-oauth-passkeys",
+    description:
+      "How we engineered secure session management, OAuth callback verification, and brute-force defenses using Better Auth and distributed stores.",
+    category: "Security",
+    coverImage:
+      "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "liam.oconnor@velo.design",
+    tags: ["Authentication", "Security", "OAuth", "Better Auth", "Web Security"],
+    content: `## Defense in Depth for Creator Platforms
+
+Authentication is the front door of your product. If auth breaks or leaks credentials, user trust is destroyed instantly.
+
+Modern web architectures must balance two competing goals: frictionless sign-in (e.g. one-click Google OAuth, WebAuthn Passkeys) and rigorous protection against CSRF, session fixation, and cross-origin leakage.
+
+### 1. Strict Session Cookie Hygiene
+
+Never store JWTs or sensitive bearer tokens in \`localStorage\`. They are vulnerable to XSS extraction. Instead, leverage partitioned, HttpOnly, SameSite cookies:
+
+- **HttpOnly**: Completely blocks JavaScript access via \`document.cookie\`.
+- **SameSite=Lax**: Prevents ambient cookie transmission in third-party cross-site request contexts.
+- **Secure**: Restricts cookie transport strictly to HTTPS tunnels.
+
+### 2. Dynamic Host Allowlisting & Proxy Trust
+
+Behind reverse proxies like Vercel or Cloudflare, origin validation must dynamically check incoming \`x-forwarded-host\` headers against trusted domain patterns while rejecting spoofed headers.
+
+With Better Auth, specifying \`allowedHosts: ["*.vercel.app", "yourdomain.com"]\` ensures preview branches receive automatic CSRF protection without manual reconfiguration.
+
+### 3. Passkey Readiness
+
+Passkeys (FIDO2 / WebAuthn) replace vulnerable passwords with cryptographic public-key signatures. By eliminating shared secrets entirely, credential phishing is rendered mathematically impossible.`,
+  },
+  {
+    title: "Mastering React 19 Actions, Server Functions, and Optimistic UI Mutations",
+    slug: "mastering-react-19-actions-server-functions-optimistic-mutations",
+    description:
+      "A masterclass in eliminating client-side loading spinners with useActionState, useOptimistic, and zero-bundle server mutations.",
+    category: "Engineering",
+    coverImage:
+      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "elena.vance@velo.design",
+    tags: ["React", "Next.js", "Frontend", "JavaScript", "TypeScript"],
+    content: `## The End of \`useEffect\` Data Mutations
+
+For years, React developers wrote boilerplate state variables (\`isLoading\`, \`error\`, \`data\`) alongside \`useEffect\` hooks to manage form submissions and like buttons.
+
+React 19 revolutionizes this workflow by treating asynchronous state transitions as first-class citizens.
+
+### 1. Zero-Flicker Optimistic UI
+
+When a reader clicks the like button or bookmarks a post, the interface should respond within a single animation frame (16ms), long before the server confirms the mutation:
+
+\`\`\`tsx
+"use client";
+import { useOptimistic, useTransition } from "react";
+import { togglePostReaction } from "@/actions/social-actions";
+
+export function LikeButton({ postId, initialLikes }: { postId: number; initialLikes: number }) {
+  const [isPending, startTransition] = useTransition();
+  const [likes, setOptimisticLikes] = useOptimistic(
+    initialLikes,
+    (current, delta: number) => current + delta
+  );
+
+  const handleLike = () => {
+    startTransition(async () => {
+      setOptimisticLikes(1);
+      await togglePostReaction(postId, "like");
+    });
+  };
+
+  return (
+    <button onClick={handleLike} className="flex items-center gap-2 font-medium">
+      <span>❤️</span>
+      <span>{likes}</span>
+    </button>
+  );
+}
+\`\`\`
+
+### 2. Server Functions as Direct RPC Endpoints
+
+Server actions eliminate the need for manual API route boilerplate. They provide automatic type inference, input sanitization via Zod, and granular cache tag revalidation in one unified syntax.`,
+  },
+  {
+    title: "Sub-Millisecond Read Latency: Multi-Tier Caching with Upstash Redis and Next.js",
+    slug: "sub-millisecond-read-latency-upstash-redis-nextjs",
+    description:
+      "Designing a resilient read-through cache architecture with TTL invalidation, distributed locks, and database fallback circuits.",
+    category: "Performance",
+    coverImage:
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "jordan.blake@velo.design",
+    tags: ["Performance", "Redis", "Caching", "Next.js", "Edge"],
+    content: `## The Latency Pyramid in Web Applications
+
+Every database query carries network overhead. When an article trends on social media and receives thousands of requests per second, querying MongoDB or PostgreSQL on every request quickly degrades responsiveness.
+
+A multi-tier caching strategy guarantees sub-10ms response times globally.
+
+### 1. Cache-Aside Pattern with Automatic Circuit Breakers
+
+In VELO, our caching layer is built to be resilient: if the Redis cluster ever becomes unreachable, queries fail open and transparently query the primary database:
+
+\`\`\`typescript
+export async function runCached<T>(
+  keySegments: (string | number)[],
+  tags: string[],
+  ttlSeconds: number,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  const cacheKey = keySegments.join(":");
+  
+  try {
+    const cached = await redis.get<T>(cacheKey);
+    if (cached !== null) return cached;
+  } catch (err) {
+    console.warn("Redis read failed, falling back to database:", err);
+  }
+
+  const freshData = await fetcher();
+
+  try {
+    await redis.set(cacheKey, freshData, { ex: ttlSeconds });
+  } catch (err) {
+    // Non-blocking write failure logging
+  }
+
+  return freshData;
+}
+\`\`\`
+
+### 2. Tag-Based Invalidation
+
+Instead of guessing raw keys to clear, tag-based invalidation allows flushing all posts belonging to an author or topic with a single tag broadcast.`,
+  },
+  {
+    title: "Zero-Config Modern Styling: Migrating to Tailwind CSS v4 and CSS Cascade Layers",
+    slug: "zero-config-styling-migrating-tailwind-css-v4",
+    description:
+      "Adopting Tailwind CSS v4's high-speed CSS-first engine, container queries, and seamless dark mode tokens without config fatigue.",
+    category: "Design Systems",
+    coverImage:
+      "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "marcus.chen@velo.design",
+    tags: ["Tailwind", "CSS", "UI/UX", "Design Systems", "Frontend"],
+    content: `## The Next Evolution of Utility CSS
+
+Tailwind CSS v4 is a ground-up rewrite engineered in Rust. It eliminates \`tailwind.config.js\` entirely in favor of native CSS syntax powered by \`@theme\` directives and cascade layers.
+
+### 1. CSS-First Design Tokens
+
+Defining custom typography, color tokens, and animation curves now happens directly inside \`globals.css\`:
+
+\`\`\`css
+@import "tailwindcss";
+
+@theme {
+  --font-editorial: "Plus Jakarta Sans", sans-serif;
+  --color-brand-primary: hsl(265 85% 60%);
+  --color-surface-glass: hsl(240 10% 4% / 0.8);
+  --radius-card: 1rem;
+}
+\`\`\`
+
+### 2. Native CSS Container Queries
+
+Breakpoints based solely on viewport width are no longer sufficient for modular component architecture. Container queries allow a post card to re-layout from vertical to horizontal based on its immediate parent container's width, not the whole window.
+
+### 3. Build Times Slashed by 10x
+
+By ditching Babel and heavy PostCSS plugins, development recompilations drop from hundreds of milliseconds to single-digit milliseconds, making UI design truly feel real-time.`,
+  },
+  {
+    title: "Building Production Multi-Agent Systems with Long-Term Vector Memory and Function Calling",
+    slug: "building-production-multi-agent-systems-vector-memory",
+    description:
+      "Orchestrating autonomous LLM pipelines that plan, browse, execute tools, and maintain persistent semantic state across sessions.",
+    category: "AI & Research",
+    coverImage:
+      "https://images.unsplash.com/photo-1677442136019-21780efad99a?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "kai.takahashi@velo.design",
+    tags: ["AI", "Agents", "LLM", "Vector DB", "Embeddings"],
+    content: `## From Chatbots to Autonomous Digital Colleagues
+
+Prompt engineering alone does not make an agent. Production-grade agentic architectures require four non-negotiable pillars:
+
+1. **Deterministic Structured Output**: Validating tool call payloads with strict schemas.
+2. **Context Window Compression**: Distilling conversation history into condensed working memories.
+3. **Execution Guardrails**: Sandboxed tool runners with explicit approval loops for destructive actions.
+4. **Adversarial Self-Critique**: A secondary verification pass before presenting results to human operators.
+
+### Semantic Memory Retrieval Loop
+
+When an agent needs context from past research, querying high-dimensional embedding vectors locates relevant insights within milliseconds:
+
+\`\`\`typescript
+export async function retrieveAgentContext(query: string, limit = 5) {
+  const queryVector = await generateEmbedding(query);
+
+  const matchedMemories = await vectorStore.search({
+    vector: queryVector,
+    filter: { confidenceScore: { $gte: 0.85 } },
+    topK: limit,
+  });
+
+  return matchedMemories.map((m) => m.documentText);
+}
+\`\`\`
+
+Combining dense vector search with lexical BM25 indexing (hybrid search) yields superior retrieval accuracy for technical terminology and code symbols.`,
+  },
+  {
+    title: "Global Edge Computing: Deploying Serverless Functions with Zero Cold Starts",
+    slug: "global-edge-computing-serverless-functions-zero-cold-starts",
+    description:
+      "How modern edge infrastructure, V8 isolates, and global distributed routing revolutionize backend execution speed.",
+    category: "DevOps",
+    coverImage:
+      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "liam.oconnor@velo.design",
+    tags: ["DevOps", "Edge", "Cloudflare", "Serverless", "Architecture"],
+    content: `## The End of Regional Latency Bottlenecks
+
+Traditional cloud servers host applications in a single availability zone (e.g., \`us-east-1\`). For users in Tokyo, London, or Sydney, every round-trip packet must cross oceans, incurring 150ms+ of physical speed-of-light delay.
+
+Edge computing moves logic to hundreds of points of presence (PoPs) worldwide, executing within 10ms of the end user.
+
+### V8 Isolates vs Docker Containers
+
+Standard serverless functions package micro-VMs or container images. When a container spins up from cold, it can take 500ms to 2 seconds to initialize Node.js runtime bindings.
+
+In contrast, V8 Isolates run thousands of isolated browser-grade JavaScript processes inside a shared heap:
+- Startup time: **< 5ms**
+- Memory footprint per isolate: **~ 3 MB**
+- Instant global distribution upon git push
+
+When coupled with geo-replicated databases and regional caching, applications become indistinguishable from local software.`,
+  },
+  {
+    title: "Crafting High-Frequency Interactive Analytics Dashboards with Recharts and Canvas",
+    slug: "crafting-high-frequency-analytics-dashboards-recharts",
+    description:
+      "Building reactive creator analytics with smooth line transitions, dual-axis comparison curves, and accessible data tables.",
+    category: "Data Visualization",
+    coverImage:
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1600&auto=format&fit=crop",
+    authorEmail: "sofia.rostova@velo.design",
+    tags: ["Analytics", "Data Visualization", "Recharts", "UI/UX", "Dashboard"],
+    content: `## Visualizing Growth Without Cognitive Overload
+
+Analytics dashboards fail when they dump numbers without narrative context. A creator does not just want to see "12,400 views"; they need to understand:
+- Is this higher or lower than typical performance?
+- What caused the spike on Tuesday?
+- Are readers finishing long-form articles or bouncing at the headline?
+
+### Dual-Period Comparative Charting
+
+In VELO, we built our charts using Recharts with custom SVG gradients and smooth Bézier curve interpolation:
+
+\`\`\`tsx
+<ResponsiveContainer width="100%" height={280}>
+  <AreaChart data={chartData}>
+    <defs>
+      <linearGradient id="currentViews" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+      </linearGradient>
+    </defs>
+    <Tooltip content={<CustomAnalyticsTooltip />} />
+    <Area
+      type="monotone"
+      dataKey="currentViews"
+      stroke="hsl(var(--primary))"
+      strokeWidth={2.5}
+      fill="url(#currentViews)"
+    />
+  </AreaChart>
+</ResponsiveContainer>
+\`\`\`
+
+By combining crisp visuals with dark-mode optimized color palettes, data transforms into an inspiring creator command center.`,
   },
 ];
 

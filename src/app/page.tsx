@@ -54,12 +54,14 @@ export const dynamic = "force-dynamic";
 
 const TOPIC_PILLS = [
   { label: "All Stories", href: "/" },
-  { label: "Web Development", href: "/search?q=Web%20Development" },
-  { label: "Next.js", href: "/search?tag=nextjs" },
+  { label: "MongoDB & Data", href: "/search?q=MongoDB" },
+  { label: "Next.js & React", href: "/search?tag=nextjs" },
+  { label: "AI & Agents", href: "/search?tag=ai" },
   { label: "UI & Design", href: "/search?q=UI/UX" },
-  { label: "Performance", href: "/search?tag=performance" },
-  { label: "Database", href: "/search?tag=postgres" },
+  { label: "Performance & Caching", href: "/search?tag=performance" },
+  { label: "Security & Auth", href: "/search?tag=authentication" },
   { label: "Architecture", href: "/search?q=architecture" },
+  { label: "Analytics", href: "/search?tag=analytics" },
 ];
 
 export default async function Home() {
