@@ -61,9 +61,8 @@ function RegisterForm({onSuccess}: RegisterFormProps) {
             }
 
         }catch(e){
-            console.log(e);
-            
-            
+            console.error("Registration submission error:", e);
+            toast.error("An error occurred while connecting to the server. Please try again.");
         }finally{
             setIsLoading(false);
            
