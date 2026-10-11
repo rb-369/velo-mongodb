@@ -41,8 +41,8 @@ const postSchema = z.object({
     coverImage: z.string()
         .trim()
         .optional()
-        .refine((value) => !value || /^https?:\/\/.+/i.test(value), {
-            message: "Cover image must be a valid URL"
+        .refine((value) => !value || /^https?:\/\/.+/i.test(value) || value.startsWith("/"), {
+            message: "Cover image must be a valid URL or uploaded image"
         }),
     publishMode: z.enum(["publish", "draft", "schedule"]),
     scheduledAt: z.string().optional(),
@@ -89,6 +89,9 @@ function PostForm({ isEditing, post }: PostFormProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>(post?.coverImage ?? "");
     const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [imageInputMode, setImageInputMode] = useState<"file" | "url">(
+        post?.coverImage && !post.coverImage.startsWith("/api/") ? "url" : "file"
+    );
 
     const { register, handleSubmit, setValue, formState: { errors } } = useForm<PostFormValues>({
         resolver: zodResolver(postSchema),
@@ -132,12 +135,12 @@ function PostForm({ isEditing, post }: PostFormProps) {
         }
 
         if (!file.type.startsWith("image/")) {
-            toast("Please select a valid image file");
+            toast.error("Please select a valid image file");
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            toast("Please choose an image smaller than 5MB");
+            toast.error("Please choose an image smaller than 5MB");
             return;
         }
 
@@ -147,6 +150,17 @@ function PostForm({ isEditing, post }: PostFormProps) {
 
         setSelectedFile(file);
         setImagePreview(URL.createObjectURL(file));
+        setValue("coverImage", "", { shouldValidate: true });
+    }
+
+    const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const url = e.target.value.trim();
+        if (imagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(imagePreview);
+        }
+        setSelectedFile(null);
+        setImagePreview(url);
+        setValue("coverImage", url, { shouldValidate: true, shouldDirty: true });
     }
 
     const clearCoverImage = () => {
@@ -210,14 +224,17 @@ function PostForm({ isEditing, post }: PostFormProps) {
 
 
                 if (res.success) {
-                    toast(!isEditing?`Post created Successfully!! :)`: `Post Edited Successfully!! :)`);
+                    toast.success(!isEditing ? "Post created Successfully!! :)" : "Post Edited Successfully!! :)");
                     router.refresh()
                     router.push("/")
+                } else {
+                    toast.error(res.message || "Failed to save post");
                 }
 
             } catch (e) {
-                console.log(e);
-                toast(`Failed To Create a Post!! :(`);
+                console.error("Post submit error:", e);
+                const msg = e instanceof Error ? e.message : "Failed To Create a Post!! :(";
+                toast.error(msg);
             } finally {
                 setIsUploadingImage(false);
             }
@@ -303,34 +320,90 @@ function PostForm({ isEditing, post }: PostFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="coverImageFile">Cover Image</Label>
-                    <Input
-                        id="coverImageFile"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImagePick}
-                        disabled={isPending || isUploadingImage}
-                    />
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="coverImage">Cover Image</Label>
+                        <div className="inline-flex rounded-lg border border-border/80 bg-muted/40 p-0.5 text-xs">
+                            <button
+                                type="button"
+                                onClick={() => setImageInputMode("file")}
+                                className={`rounded-md px-2 py-0.5 font-medium transition ${
+                                    imageInputMode === "file"
+                                        ? "bg-background text-foreground shadow-xs"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                File Upload
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setImageInputMode("url")}
+                                className={`rounded-md px-2 py-0.5 font-medium transition ${
+                                    imageInputMode === "url"
+                                        ? "bg-background text-foreground shadow-xs"
+                                        : "text-muted-foreground hover:text-foreground"
+                                }`}
+                            >
+                                Image URL
+                            </button>
+                        </div>
+                    </div>
+
+                    {imageInputMode === "file" ? (
+                        <>
+                            <Input
+                                id="coverImageFile"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImagePick}
+                                disabled={isPending || isUploadingImage}
+                            />
+                            <p className="text-xs text-muted-foreground">Upload from device (max 5MB). Stored automatically in database / Cloudinary.</p>
+                        </>
+                    ) : (
+                        <>
+                            <Input
+                                id="coverImageUrl"
+                                type="url"
+                                placeholder="https://images.unsplash.com/photo-..."
+                                defaultValue={post?.coverImage ?? ""}
+                                onChange={handleImageUrlChange}
+                                disabled={isPending || isUploadingImage}
+                            />
+                            <p className="text-xs text-muted-foreground">Paste a direct image URL (Unsplash, Cloudinary, etc.).</p>
+                        </>
+                    )}
+
                     <input type="hidden" {...register("coverImage")} />
-                    <p className="text-xs text-muted-foreground">Choose an image from your device (max 5MB).</p>
 
                     {imagePreview ? (
-                        <div className="overflow-hidden rounded-md border">
-                            <div className="relative h-36 w-full">
-                                <Image src={imagePreview} alt="Cover preview" fill sizes="100vw" className="object-cover" />
+                        <div className="overflow-hidden rounded-md border border-border/80">
+                            <div className="relative h-36 w-full bg-muted/30">
+                                <Image
+                                    src={imagePreview}
+                                    alt="Cover preview"
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover"
+                                    unoptimized
+                                />
                             </div>
                             <div className="p-2">
-                                <Button type="button" variant="outline" size="sm" onClick={clearCoverImage} disabled={isPending || isUploadingImage}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={clearCoverImage}
+                                    disabled={isPending || isUploadingImage}
+                                >
                                     Remove Image
                                 </Button>
                             </div>
                         </div>
                     ) : null}
 
-                    {
-                        errors?.coverImage &&
+                    {errors?.coverImage && (
                         <p className="text-sm text-red-700">{errors.coverImage.message}</p>
-                    }
+                    )}
                 </div>
 
                 <div className="space-y-2">

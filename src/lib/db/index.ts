@@ -17,6 +17,7 @@ import type {
   CommentDoc,
   AuthorBlockWordDoc,
   NotificationPreferenceDoc,
+  UploadDoc,
 } from "./schema";
 
 function getMongoUri(): string {
@@ -52,7 +53,11 @@ function getClientInstance(): MongoClient {
   const uri = getMongoUri();
 
   if (!global._mongoClient || global._mongoUri !== uri) {
-    global._mongoClient = new MongoClient(uri);
+    global._mongoClient = new MongoClient(uri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 8000,
+      socketTimeoutMS: 45000,
+    });
     global._mongoClientPromise = global._mongoClient.connect();
     global._mongoUri = uri;
   }
@@ -120,6 +125,9 @@ export const collections = {
   },
   get counters(): Collection<{ _id: string; seq: number }> {
     return getDb().collection<{ _id: string; seq: number }>(schema.counters);
+  },
+  get uploads(): Collection<UploadDoc> {
+    return getDb().collection<UploadDoc>(schema.uploads);
   },
 };
 

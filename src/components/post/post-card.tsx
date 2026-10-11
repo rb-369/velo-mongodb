@@ -54,6 +54,7 @@ export default function PostCard({ post }: PostCardProps) {
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            unoptimized={post.coverImage.startsWith("/api/") || post.coverImage.startsWith("data:")}
           />
         ) : (
           <div className="relative h-full w-full bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 p-4">

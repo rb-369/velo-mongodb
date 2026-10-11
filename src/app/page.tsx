@@ -210,6 +210,7 @@ export default async function Home() {
                       fill
                       sizes="(max-width: 768px) 100vw, 60vw"
                       className="object-cover transition duration-500 group-hover:scale-105"
+                      unoptimized={Boolean(featuredPost.coverImage?.startsWith("/api/") || featuredPost.coverImage?.startsWith("data:"))}
                     />
                   </div>
 

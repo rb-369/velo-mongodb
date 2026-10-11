@@ -27,6 +27,11 @@ async function invalidatePostTags(options: { slug?: string; authorId?: string })
 }
 
 function isValidCoverImage(value: string): boolean {
+    if (!value) return true;
+    if (value.startsWith("/") || value.startsWith("/api/")) {
+        return true;
+    }
+
     if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/i.test(value)) {
         return true;
     }

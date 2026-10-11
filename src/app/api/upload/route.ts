@@ -1,14 +1,30 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
+import { collections } from "@/lib/db";
+import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+function hasValidCloudinaryConfig(): boolean {
+  if (process.env.CLOUDINARY_URL && process.env.CLOUDINARY_URL.trim().length > 0) {
+    return true;
+  }
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+  return Boolean(cloudName && apiKey && apiSecret);
+}
+
 if (process.env.CLOUDINARY_URL) {
   cloudinary.config({ secure: true });
-} else {
+} else if (
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+) {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dnjlu1cnf",
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
@@ -17,10 +33,6 @@ if (process.env.CLOUDINARY_URL) {
 
 export async function POST(request: Request) {
   try {
-    if (!cloudinary.config().cloud_name) {
-      return NextResponse.json({ message: "Cloudinary not configured" }, { status: 500 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -38,32 +50,63 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "nextjs-blog-posts",
-          resource_type: "image",
-        },
-        (error, uploadResult) => {
-          if (error || !uploadResult) {
-            reject(error || new Error("Upload failed"));
-            return;
+    // 1. If Cloudinary credentials are valid, attempt Cloudinary upload
+    if (hasValidCloudinaryConfig()) {
+      try {
+        const result = await new Promise<{ secure_url: string; public_id: string }>(
+          (resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: "nextjs-blog-posts",
+                resource_type: "image",
+              },
+              (error, uploadResult) => {
+                if (error || !uploadResult) {
+                  reject(error || new Error("Cloudinary upload failed"));
+                  return;
+                }
+
+                resolve({
+                  secure_url: uploadResult.secure_url,
+                  public_id: uploadResult.public_id,
+                });
+              }
+            );
+
+            streamifier.createReadStream(buffer).pipe(uploadStream);
           }
+        );
 
-          resolve({
-            secure_url: uploadResult.secure_url,
-            public_id: uploadResult.public_id,
-          });
-        }
-      );
+        return NextResponse.json(
+          {
+            secureUrl: result.secure_url,
+            publicId: result.public_id,
+          },
+          { status: 200 }
+        );
+      } catch (cloudinaryError) {
+        console.warn(
+          "Cloudinary upload failed or unconfigured, falling back to database storage:",
+          cloudinaryError
+        );
+      }
+    }
 
-      streamifier.createReadStream(buffer).pipe(uploadStream);
+    // 2. Fallback to MongoDB Atlas database storage
+    const imageId = `img_${randomUUID()}`;
+    await collections.uploads.insertOne({
+      id: imageId,
+      filename: file.name,
+      contentType: file.type || "image/jpeg",
+      size: file.size,
+      data: buffer,
+      createdAt: new Date(),
     });
 
     return NextResponse.json(
       {
-        secureUrl: result.secure_url,
-        publicId: result.public_id,
+        secureUrl: `/api/upload/${imageId}`,
+        publicId: imageId,
       },
       { status: 200 }
     );

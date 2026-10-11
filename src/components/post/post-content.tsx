@@ -29,6 +29,7 @@ export default function PostContent({
             priority
             sizes="(max-width: 896px) 100vw, 896px"
             className="object-cover"
+            unoptimized={post.coverImage.startsWith("/api/") || post.coverImage.startsWith("data:")}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent opacity-50" />
         </div>

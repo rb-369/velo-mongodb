@@ -201,6 +201,16 @@ export interface NotificationPreferenceDoc {
   updatedAt: Date;
 }
 
+export interface UploadDoc {
+  _id?: any;
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  data: Buffer;
+  createdAt: Date;
+}
+
 // Collection names
 export const users = "users";
 export const sessions = "sessions";
@@ -222,3 +232,4 @@ export const comments = "comments";
 export const authorBlockWords = "authorBlockWords";
 export const notificationPreferences = "notificationPreferences";
 export const counters = "counters";
+export const uploads = "uploads";
