@@ -2,6 +2,66 @@ import { collections, getNextSequence } from "./index";
 import { getOrSetRedisCache } from "@/lib/cache/redis-cache";
 import { toPlainObject } from "@/lib/utils";
 import type { PostDoc } from "./schema";
+import { ObjectId } from "mongodb";
+
+export interface PopulatedUser {
+    id: string;
+    _id?: any;
+    name: string;
+    email: string;
+    image: string | null;
+    emailVerified: boolean | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export async function findUsersByIds(userIds: (string | undefined | null)[]): Promise<Map<string, PopulatedUser>> {
+    const validIds = Array.from(new Set(userIds.filter((id): id is string => Boolean(id && String(id).trim()))));
+    if (!validIds.length) return new Map<string, PopulatedUser>();
+
+    const objectIds: ObjectId[] = [];
+    const stringIds: string[] = [];
+
+    for (const rawId of validIds) {
+        const idStr = String(rawId).trim();
+        stringIds.push(idStr);
+        if (ObjectId.isValid(idStr) && String(new ObjectId(idStr)) === idStr) {
+            objectIds.push(new ObjectId(idStr));
+        }
+    }
+
+    const orClauses: any[] = [
+        { id: { $in: stringIds } },
+        { _id: { $in: stringIds } },
+    ];
+    if (objectIds.length > 0) {
+        orClauses.push({ _id: { $in: objectIds } });
+    }
+
+    const userDocs = await collections.users.find({ $or: orClauses }).toArray();
+    const userMap = new Map<string, PopulatedUser>();
+    const now = new Date();
+
+    for (const u of userDocs) {
+        const resolvedId = u.id || (u._id ? String(u._id) : "");
+        const normalized: PopulatedUser = {
+            id: resolvedId,
+            _id: u._id,
+            name: u.name || (u.email ? u.email.split("@")[0] : "Author"),
+            email: u.email || "",
+            image: u.image ?? null,
+            emailVerified: typeof u.emailVerified === "boolean" ? u.emailVerified : null,
+            createdAt: u.createdAt instanceof Date ? u.createdAt : (u.createdAt ? new Date(u.createdAt) : now),
+            updatedAt: u.updatedAt instanceof Date ? u.updatedAt : (u.updatedAt ? new Date(u.updatedAt) : now),
+        };
+
+        if (resolvedId) userMap.set(resolvedId, normalized);
+        if (u._id) userMap.set(String(u._id), normalized);
+        if (u.id) userMap.set(String(u.id), normalized);
+    }
+
+    return userMap;
+}
 
 async function populatePosts(posts: PostDoc[]) {
     if (!posts.length) return [];
@@ -9,16 +69,7 @@ async function populatePosts(posts: PostDoc[]) {
     const postIds = posts.map((p) => p.id);
     const authorIds = Array.from(new Set(posts.map((p) => p.authorId)));
 
-    const authorDocs = await collections.users.find({ id: { $in: authorIds } }).toArray();
-    const authorMap = new Map<string, any>();
-    for (const a of authorDocs) {
-        authorMap.set(a.id, {
-            id: a.id,
-            name: a.name,
-            email: a.email,
-            image: a.image ?? null,
-        });
-    }
+    const authorMap = await findUsersByIds(authorIds);
 
     const postTagDocs = await collections.postTags.find({ postId: { $in: postIds } }).toArray();
     const tagIds = Array.from(new Set(postTagDocs.map((pt) => pt.tagId)));
@@ -45,12 +96,20 @@ async function populatePosts(posts: PostDoc[]) {
 
     const populated = posts.map((p) => {
         const { _id, ...rest } = p;
+        const author = authorMap.get(p.authorId) ||
+                       (p.authorId ? authorMap.get(String(p.authorId)) : null) || {
+                           id: p.authorId,
+                           name: "Author",
+                           email: "",
+                           image: null,
+                       };
+
         return {
             ...rest,
             coverImage: p.coverImage ?? null,
             scheduledAt: p.scheduledAt ?? null,
             publishedAt: p.publishedAt ?? null,
-            author: authorMap.get(p.authorId) || { name: "Unknown Author" },
+            author,
             postTags: postTagsByPostId.get(p.id) || [],
         };
     });
@@ -296,25 +355,18 @@ export async function getPostCommentsWithReplies(postId: number) {
         .toArray();
 
     const userIds = Array.from(new Set(allComments.map((c) => c.userId)));
-    const userDocs = await collections.users.find({ id: { $in: userIds } }).toArray();
-    const userMap = new Map<string, any>();
-    for (const u of userDocs) {
-        userMap.set(u.id, {
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            emailVerified: u.emailVerified ?? null,
-            createdAt: u.createdAt,
-            updatedAt: u.updatedAt,
-        });
-    }
+    const userMap = await findUsersByIds(userIds);
 
     const commentsWithUser = allComments.map((comment) => {
         const { _id, ...commentRest } = comment;
+        const user = userMap.get(comment.userId) ||
+                     (comment.userId ? userMap.get(String(comment.userId)) : null) ||
+                     null;
+
         return {
             ...commentRest,
             parentId: comment.parentId ?? null,
-            user: userMap.get(comment.userId) || null,
+            user,
         };
     });
 
@@ -783,24 +835,25 @@ export async function getModerationDashboard(authorId: string) {
     const userIds = Array.from(
         new Set([...rawReports.map((r) => r.userId), ...rawComments.map((c) => c.userId)])
     );
-    const userDocs = await collections.users.find({ id: { $in: userIds } }).toArray();
-    const userMap = new Map(userDocs.map((u) => [u.id, u]));
+    const userMap = await findUsersByIds(userIds);
 
     const reports = rawReports.map((r) => {
         const { _id, ...rRest } = r;
+        const u = userMap.get(r.userId) || (r.userId ? userMap.get(String(r.userId)) : null);
         return {
             ...rRest,
             post: postMap.get(r.postId) ?? { id: r.postId, title: "Deleted Post", slug: "" },
-            user: userMap.get(r.userId) ?? { id: r.userId, name: "Anonymous", email: "" },
+            user: u ?? { id: r.userId, name: "Reader", email: "" },
         };
     });
 
     const commentsQueue = rawComments.map((c) => {
         const { _id, ...cRest } = c;
+        const u = userMap.get(c.userId) || (c.userId ? userMap.get(String(c.userId)) : null);
         return {
             ...cRest,
             post: postMap.get(c.postId) ?? { id: c.postId, title: "Deleted Post", slug: "" },
-            user: userMap.get(c.userId) ?? { id: c.userId, name: "Anonymous", email: "" },
+            user: u ?? { id: c.userId, name: "Reader", email: "" },
         };
     });
 
@@ -863,20 +916,18 @@ export async function getNotificationCenter(userId: string) {
                       .toArray();
 
                   const commenterIds = Array.from(new Set(rawComments.map((c) => c.userId)));
-                  const commenters = await collections.users
-                      .find({ id: { $in: commenterIds } })
-                      .toArray();
-                  const commenterMap = new Map(commenters.map((u) => [u.id, u.name]));
+                  const commenterMap = await findUsersByIds(commenterIds);
 
                   return rawComments.map((c) => {
                       const p = postMap.get(c.postId);
+                      const commenter = commenterMap.get(c.userId) || (c.userId ? commenterMap.get(String(c.userId)) : null);
                       return {
                           commentId: c.id,
                           content: c.content,
                           createdAt: c.createdAt,
                           postSlug: p?.slug ?? "",
                           postTitle: p?.title ?? "",
-                          commenterName: commenterMap.get(c.userId) ?? "Anonymous",
+                          commenterName: commenter?.name ?? "Reader",
                       };
                   });
               })()
@@ -907,23 +958,23 @@ export async function getNotificationCenter(userId: string) {
               const childPostIds = Array.from(new Set(childComments.map((c) => c.postId)));
               const childUserIds = Array.from(new Set(childComments.map((c) => c.userId)));
 
-              const [postsDocs, usersDocs] = await Promise.all([
+              const [postsDocs, cUserMap] = await Promise.all([
                   collections.posts.find({ id: { $in: childPostIds } }).toArray(),
-                  collections.users.find({ id: { $in: childUserIds } }).toArray(),
+                  findUsersByIds(childUserIds),
               ]);
 
               const cPostMap = new Map(postsDocs.map((p) => [p.id, p]));
-              const cUserMap = new Map(usersDocs.map((u) => [u.id, u.name]));
 
               return childComments.map((c) => {
                   const p = cPostMap.get(c.postId);
+                  const commenter = cUserMap.get(c.userId) || (c.userId ? cUserMap.get(String(c.userId)) : null);
                   return {
                       commentId: c.id,
                       content: c.content,
                       createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt),
                       postSlug: p?.slug ?? "",
                       postTitle: p?.title ?? "",
-                      commenterName: cUserMap.get(c.userId) ?? "Anonymous",
+                      commenterName: commenter?.name ?? "Reader",
                   };
               });
           })()

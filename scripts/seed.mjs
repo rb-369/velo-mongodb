@@ -655,7 +655,7 @@ async function seed() {
     for (const author of SEED_AUTHORS) {
       const existing = await usersCol.findOne({ email: author.email });
       if (existing) {
-        authorIdMap.set(author.email, existing.id);
+        authorIdMap.set(author.email, existing.id || String(existing._id));
         console.log(`[seed] Author already exists: ${author.name}`);
       } else {
         await usersCol.insertOne({

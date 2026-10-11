@@ -96,6 +96,26 @@ export const auth = betterAuth({
         client,
         usePlural: true,
     }),
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    try {
+                        const { collections } = await import("./db");
+                        const { ObjectId } = await import("mongodb");
+                        if (user && user.id) {
+                            const filter: any = ObjectId.isValid(user.id)
+                                ? { $or: [{ _id: new ObjectId(user.id) }, { _id: user.id }] }
+                                : { _id: user.id };
+                            await collections.users.updateOne(filter, { $set: { id: user.id } });
+                        }
+                    } catch (err) {
+                        console.error("[auth] Database hook user.create error:", err);
+                    }
+                },
+            },
+        },
+    },
     socialProviders: {
         ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
             ? {

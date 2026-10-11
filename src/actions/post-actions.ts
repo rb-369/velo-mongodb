@@ -91,7 +91,6 @@ export async function createPost(formData: FormData) {
             }
         }
 
-        const slug = slugify(title);
         const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
         if (publishMode === "schedule" && (!scheduledAt || Number.isNaN(scheduledAt.getTime()))) {
@@ -106,13 +105,11 @@ export async function createPost(formData: FormData) {
         const finalStatus = isDraft ? "draft" : isScheduled ? "scheduled" : "published";
         const shouldPublishNow = finalStatus === "published";
 
+        let slug = slugify(title);
         const existingPost = await collections.posts.findOne({ slug });
 
         if (existingPost) {
-            return {
-                success: false,
-                message: "A post with the same title already exists! Pls try with a different one"
-            };
+            slug = `${slug}-${Date.now().toString(36)}`;
         }
 
         const nextId = await getNextSequence("posts");
@@ -208,7 +205,7 @@ export async function updatePost(postId: number, formData: FormData) {
             }
         }
 
-        const slug = slugify(title);
+        let slug = slugify(title);
         const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
         if (publishMode === "schedule" && (!scheduledAt || Number.isNaN(scheduledAt.getTime()))) {
@@ -226,10 +223,7 @@ export async function updatePost(postId: number, formData: FormData) {
         const exists = await collections.posts.findOne({ slug, id: { $ne: pId } });
 
         if (exists) {
-            return {
-                success: false,
-                message: "A post with the same title already exists! Pls try with a different one"
-            };
+            slug = `${slug}-${Date.now().toString(36)}`;
         }
 
         const updatedPost = await collections.posts.findOne({ id: pId });

@@ -82,7 +82,7 @@ async function NotificationsPage() {
                     {post.title}
                   </Link>
                   <span className="text-xs text-muted-foreground">
-                    by {post.author.name}
+                    by {post.author?.name || "Author"}
                   </span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">

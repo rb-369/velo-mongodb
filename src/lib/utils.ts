@@ -6,13 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function slugify(text: string): string {
+  const cleaned = (text ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]+/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-  return text
-  .toLowerCase()
-  .replace(/[^a-z0-9 ]+/g, "")
-  .replace(/ +/g, "-")
-  //converts space to hyphens "-" eg. Next js 15 -> Next-js-15 
-
+  return cleaned || `post-${Date.now().toString(36)}`;
 }
 
 export function formatDate(date: Date | string | number | null | undefined): string {

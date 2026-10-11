@@ -55,6 +55,7 @@ function LoginForm() {
             }
 
             toast.success("Login Successful!");
+            router.refresh();
             router.push("/");
 
         }catch(e){

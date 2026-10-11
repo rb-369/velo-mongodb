@@ -71,10 +71,10 @@ export interface PostContentProps {
         user: {
             id: string;
             name: string;
-            email: string;
-            emailVerified: boolean | null;
-            createdAt: Date;
-            updatedAt: Date;
+            email?: string;
+            emailVerified?: boolean | null;
+            createdAt?: Date;
+            updatedAt?: Date;
         } | null;
         replies: Array<{
             id: number;
@@ -88,10 +88,10 @@ export interface PostContentProps {
             user: {
                 id: string;
                 name: string;
-                email: string;
-                emailVerified: boolean | null;
-                createdAt: Date;
-                updatedAt: Date;
+                email?: string;
+                emailVerified?: boolean | null;
+                createdAt?: Date;
+                updatedAt?: Date;
             } | null;
         }>;
     }>;

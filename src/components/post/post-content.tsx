@@ -75,7 +75,7 @@ export default function PostContent({
               <UserRound className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-bold text-sm text-foreground">{post.author.name}</p>
+              <p className="font-bold text-sm text-foreground">{post.author?.name || "Author"}</p>
               <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <CalendarDays className="h-3 w-3" />
                 <span suppressHydrationWarning>Published on {formatDate(post.createdAt)}</span>
@@ -113,7 +113,7 @@ export default function PostContent({
           <PostInteractions
             postId={post.id}
             authorId={post.authorId}
-            authorName={post.author.name}
+            authorName={post.author?.name || "Author"}
             slug={post.slug}
             engagement={engagement}
             userState={userState}

@@ -13,7 +13,7 @@ export async function runSeeder() {
     const existing = await collections.users.findOne({ email: author.email });
 
     if (existing) {
-      authorMap.set(author.email, existing.id);
+      authorMap.set(author.email, existing.id || String(existing._id));
     } else {
       const newAuthor = {
         id: author.id,
